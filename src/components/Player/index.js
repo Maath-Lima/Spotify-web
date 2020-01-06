@@ -1,4 +1,10 @@
 import React from "react";
+
+import Slider from "rc-slider";
+import Sound from "react-sound";
+
+import { connect } from "react-redux";
+
 import {
   Container,
   Current,
@@ -17,10 +23,12 @@ import PauseIcon from "../../assets/images/pause.svg";
 import ForwardIcon from "../../assets/images/forward.svg";
 import RepeatIcon from "../../assets/images/repeat.svg";
 
-import Slider from "rc-slider";
-
-const Player = () => (
+const Player = ({ player }) => (
   <Container>
+    {!!player.currentSong && (
+      <Sound url={player.currentSong.file} playStatus={player.status} />
+    )}
+
     <Current>
       <img src="https://i.imgur.com/W7gHtDI.jpg" alt="loona XX"></img>
       <div>
@@ -76,4 +84,8 @@ const Player = () => (
   </Container>
 );
 
-export default Player;
+const mapStateToProps = state => ({
+  player: state.player
+});
+
+export default connect(mapStateToProps)(Player);
