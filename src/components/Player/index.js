@@ -1,8 +1,10 @@
-import React from "react";
+import React, { Fragment } from "react";
 
 import Slider from "rc-slider";
 import Sound from "react-sound";
 
+import { Creators as PlayerActions } from "../../store/ducks/player";
+import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
 
 import {
@@ -23,18 +25,46 @@ import PauseIcon from "../../assets/images/pause.svg";
 import ForwardIcon from "../../assets/images/forward.svg";
 import RepeatIcon from "../../assets/images/repeat.svg";
 
-const Player = ({ player }) => (
+const Player = ({
+  player,
+  position,
+  duration,
+  positionShown,
+  progress,
+  play,
+  pause,
+  next,
+  prev,
+  playing,
+  handlePosition,
+  setPosition,
+  setVolume
+}) => (
   <Container>
     {!!player.currentSong && (
-      <Sound url={player.currentSong.file} playStatus={player.status} />
+      <Sound
+        url={player.currentSong.file}
+        playStatus={player.status}
+        onFinishedPlaying={next}
+        onPlaying={playing}
+        position={player.position}
+        volume={player.volume}
+      />
     )}
 
     <Current>
-      <img src="https://i.imgur.com/W7gHtDI.jpg" alt="loona XX"></img>
-      <div>
-        <span>Colors</span>
-        <small>LOONA</small>
-      </div>
+      {!!player.currentSong && (
+        <Fragment>
+          <img
+            src={player.currentSong.thumbnail}
+            alt={player.currentSong.title}
+          ></img>
+          <div>
+            <span>{player.currentSong.title}</span>
+            <small>{player.currentSong.author}</small>
+          </div>
+        </Fragment>
+      )}
     </Current>
 
     <Progress>
@@ -42,16 +72,19 @@ const Player = ({ player }) => (
         <button>
           <img src={ShuffleIncon} alt="Shuffle" />
         </button>
-        <button>
+        <button onClick={prev}>
           <img src={BackwardIcon} alt="Backward" />
         </button>
-        <button>
-          <img src={PlayIcon} alt="Play" />
-        </button>
-        <button>
-          <img src={PauseIcon} alt="Pause" />
-        </button>
-        <button>
+        {!!player.currentSong && player.status === Sound.status.PLAYING ? (
+          <button onClick={pause}>
+            <img src={PauseIcon} alt="Pause" />
+          </button>
+        ) : (
+          <button onClick={play}>
+            <img src={PlayIcon} alt="Play" />
+          </button>
+        )}
+        <button onClick={next}>
           <img src={ForwardIcon} alt="Foward" />
         </button>
         <button>
@@ -60,15 +93,19 @@ const Player = ({ player }) => (
       </Controls>
 
       <Time>
-        <span>1:39</span>
+        <span>{positionShown || position}</span>
         <ProgressSlider>
           <Slider
             railStyle={{ background: "#404040", borderRadius: 10 }}
             trackStyle={{ background: "#1ed760" }}
             handleStyle={{ border: 0 }}
+            max={1000}
+            onChange={value => handlePosition(value / 1000)}
+            onAfterChange={value => setPosition(value / 1000)}
+            value={progress}
           />
         </ProgressSlider>
-        <span>4:24</span>
+        <span>{duration}</span>
       </Time>
     </Progress>
 
@@ -78,14 +115,35 @@ const Player = ({ player }) => (
         railStyle={{ background: "#404040", borderRadius: 10 }}
         trackStyle={{ background: "#fff" }}
         handleStyle={{ display: "none" }}
-        value={100}
+        value={player.volume}
+        onChange={setVolume}
       />
     </Volume>
   </Container>
 );
 
+function msToTime(duration) {
+  if (!duration) return null;
+
+  let seconds = parseInt((duration / 1000) % 60, 10);
+  const minutes = parseInt((duration / (1000 * 60)) % 60, 10);
+
+  seconds = seconds < 10 ? `0${seconds}` : seconds;
+
+  return `${minutes}:${seconds}`;
+}
+
 const mapStateToProps = state => ({
-  player: state.player
+  player: state.player,
+  position: msToTime(state.player.position),
+  duration: msToTime(state.player.duration),
+  positionShown: msToTime(state.player.positionShown),
+  progress:
+    (state.player.positionShown || state.player.position) *
+    (1000 / state.player.duration)
 });
 
-export default connect(mapStateToProps)(Player);
+const mapDispatchToProps = dispatch =>
+  bindActionCreators(PlayerActions, dispatch);
+
+export default connect(mapStateToProps, mapDispatchToProps)(Player);
